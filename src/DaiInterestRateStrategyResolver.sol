@@ -24,7 +24,11 @@ contract DaiInterestRateStrategyResolver {
 
         irs.recompute();
 
-        canExec = irs.getBaseRate() != baseRate || irs.getDebtRatio() != debtRatio;
+        uint256 nextDebtRatio = irs.getDebtRatio();
+
+        canExec = irs.getBaseRate() != baseRate ||
+            (nextDebtRatio != debtRatio && nextDebtRatio >= 1e18) ||
+            (debtRatio > 1e18 && nextDebtRatio <= 1e18);
         
         execPayload = abi.encodeCall(IDaiInterestRateStrategy.recompute, ());
     }
