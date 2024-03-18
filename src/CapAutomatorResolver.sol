@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 interface IPool {
     function getReservesList() external view returns (address[] memory);
-    function getReserveConfiguration(address asset) external view returns (uint256);
+    function getConfiguration(address asset) external view returns (uint256);
 }
 
 interface ICapAutomator {
@@ -55,13 +55,13 @@ contract CapAutomatorResolver {
             (uint48 maxSupply, uint48 gapSupply,,,) = automator.supplyCapConfigs(reserve);
             (uint48 maxBorrow, uint48 gapBorrow,,,) = automator.borrowCapConfigs(reserve);
 
-            uint256 config = pool.getReserveConfiguration(reserve);
+            uint256 config = pool.getConfiguration(reserve);
             uint256 prevSupplyCap = getSupplyCap(config);
             uint256 prevBorrowCap = getBorrowCap(config);
 
             automator.exec(reserve);
 
-            config = pool.getReserveConfiguration(reserve);
+            config = pool.getConfiguration(reserve);
             uint256 nextSupplyCap = getSupplyCap(config);
             uint256 nextBorrowCap = getBorrowCap(config);
 
@@ -71,12 +71,8 @@ contract CapAutomatorResolver {
                 (nextBorrowCap == maxBorrow || absDiff(nextBorrowCap, prevBorrowCap) >= gapBorrow * threshold / 1e4);
 
             // Good to adjust!
-            if (supplyChanged && borrowChanged) {
+            if (supplyChanged || borrowChanged) {
                 return (true, abi.encodeCall(ICapAutomator.exec, (reserve)));
-            } else if (supplyChanged) {
-                return (true, abi.encodeCall(ICapAutomator.execSupply, (reserve)));
-            } else if (borrowChanged) {
-                return (true, abi.encodeCall(ICapAutomator.execBorrow, (reserve)));
             }
         }
 
