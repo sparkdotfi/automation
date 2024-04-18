@@ -34,23 +34,20 @@ contract XChainDSROracleResolver {
         pot = IPot(_pot);
     }
 
-    function checker(address[] memory forwarders, uint256 gasLimit)
+    function checker(address forwarder, uint256 maxDelta, uint256 gasLimit)
         external view
         returns (bool canExec, bytes memory execPayload)
     {
-        uint256 potDsr = pot.dsr();
-        for (uint256 i = 0; i < forwarders.length; i++) {
-            address forwarder = forwarders[i];
-            IForwarderBase.PotData memory potData = IForwarderBase(forwarder).getLastSeenPotData();
+        IForwarderBase.PotData memory potData = IForwarderBase(forwarder).getLastSeenPotData();
 
-            if (potData.dsr != potDsr) {
-                return (true, abi.encodeCall(IForwader.refresh, (gasLimit)));
-            }
+        if (potData.dsr != pot.dsr() || block.timestamp >= potData.rho + maxDelta) {
+            return (true, abi.encodeCall(IForwader.refresh, (gasLimit)));
         }
     }
 
     function checkerArbitrumStyle(
-        address[] memory forwarders,
+        address forwarder,
+        uint256 maxDelta,
         uint256 gasLimit,
         uint256 maxFeePerGas,
         uint256 baseFee
@@ -58,14 +55,10 @@ contract XChainDSROracleResolver {
         external view
         returns (bool canExec, bytes memory execPayload)
     {
-        uint256 potDsr = pot.dsr();
-        for (uint256 i = 0; i < forwarders.length; i++) {
-            address forwarder = forwarders[i];
-            IForwarderBase.PotData memory potData = IForwarderBase(forwarder).getLastSeenPotData();
+        IForwarderBase.PotData memory potData = IForwarderBase(forwarder).getLastSeenPotData();
 
-            if (potData.dsr != potDsr) {
-                return (true, abi.encodeCall(IForwaderArbitrum.refresh, (gasLimit, maxFeePerGas, baseFee)));
-            }
+        if (potData.dsr != pot.dsr() || block.timestamp >= potData.rho + maxDelta) {
+            return (true, abi.encodeCall(IForwaderArbitrum.refresh, (gasLimit, maxFeePerGas, baseFee)));
         }
     }
 
